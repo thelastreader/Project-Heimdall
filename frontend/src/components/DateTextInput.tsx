@@ -1,0 +1,11 @@
+import { useState, useRef } from 'react';
+import { Calendar } from 'lucide-react';
+
+export default function DateTextInput({ value, onChange, placeholder = 'DD/MM/YYYY', disabled = false }: { value: string; onChange: (iso: string) => void; placeholder?: string; disabled?: boolean }) {
+  const display = value && /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value.slice(8, 10)}/${value.slice(5, 7)}/${value.slice(0, 4)}` : value;
+  const [text, setText] = useState(display); const [error, setError] = useState(false); const picker = useRef<HTMLInputElement>(null);
+  function mask(next: string) { const digits = next.replace(/\D/g, '').slice(0, 8); return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4, 8)].filter(Boolean).join('/'); }
+  function parseDate(next: string) { const match = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/((?:19|20)\d{2})$/.exec(next.trim()); if (!match) return null; const date = new Date(Number(match[3]), Number(match[2]) - 1, Number(match[1])); return date.getFullYear() === Number(match[3]) && date.getMonth() === Number(match[2]) - 1 && date.getDate() === Number(match[1]) ? `${match[3]}-${match[2]}-${match[1]}` : null; }
+  function commit(next = text) { if (!next) { setError(false); onChange(''); return; } const iso = parseDate(next); setError(!iso); if (iso) onChange(iso); }
+  return <div className="relative"><input disabled={disabled} className={`input pr-10 ${error ? 'border-red-500 ring-1 ring-red-500' : ''}`} type="text" inputMode="numeric" placeholder={placeholder} value={text} onChange={event => { const next = mask(event.target.value); setText(next); setError(Boolean(next) && next.length === 10 && !parseDate(next)); }} onBlur={() => commit()} onKeyDown={event => { if (event.key === 'Enter' || event.key === 'Tab') commit(); }} /><button type="button" disabled={disabled} className="absolute right-2 top-3 text-slate-400" onClick={() => picker.current?.showPicker()} aria-label="Open calendar"><Calendar size={16} /></button><input ref={picker} className="sr-only" type="date" value={value} onChange={event => { const iso = event.target.value; setText(iso ? `${iso.slice(8,10)}/${iso.slice(5,7)}/${iso.slice(0,4)}` : ''); setError(false); onChange(iso); }} />{error && <p className="mt-1 text-[11px] text-red-500">Wrong format (use DD/MM/YYYY)</p>}</div>;
+}
